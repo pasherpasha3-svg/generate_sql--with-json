@@ -1,0 +1,14 @@
+[
+    {
+        "user_question": "What is the sum amount of transactions?",
+        "sql": "SELECT SUM(Amount) FROM FinanceTransaction;"
+    },
+    {
+        "user_question": "Show me the last 5 records",
+        "sql": "SELECT TOP 5 * FROM FinanceTransaction ORDER BY Date DESC;"
+    },
+    {
+        "user_question": "Count all transactions",
+        "sql": "SELECT COUNT(*) FROM FinanceTransaction;"
+    }
+] 
