@@ -14,7 +14,6 @@ DIM = 384
 index = faiss.IndexFlatL2(DIM)
 history = []
 VECTOR_FILE = "my_vector_db.index"
-TEXT_FILE = "my_text_db.json"
 SEED_FILE = "initial_question.json"
 
 # 1.API Keys
@@ -35,25 +34,33 @@ def search_memory(user_question):
     return None
 
 
-def save_memory(user_question, sql_query):
-    q_embedding = get_embedding(user_question)
-    index.add(q_embedding)
-    history.append({"user_question": user_question, "sql": sql_query})
+def save_memory(question, sql, verbose=True):
+    embedding = get_embedding(question)
+    index.add(embedding)
     
-    # حفظ على الهارد ديسك فوراً
+    # 1. تحديث القائمة في الذاكرة (RAM)
+    history.append({"user_question": question, "sql": sql})
+    with open(SEED_FILE, 'w', encoding='utf-8') as f:
+        json.dump(history, f, indent=4, ensure_ascii=False)
+        
     faiss.write_index(index, VECTOR_FILE)
-    with open(TEXT_FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=4)
-    print(" saved in memory ")
-#لتخزين الدائم حتي اذا تم قفل البرنامج 
-def load_persistence():
-    global index, history
-    if os.path.exists(VECTOR_FILE) and os.path.exists(TEXT_FILE):
-        index = faiss.read_index(VECTOR_FILE)
-        with open(TEXT_FILE, "r", encoding="utf-8") as f:
+    
+    if verbose:
+        print("   saved in memory   ")
+
+#load data in memory 
+def load_foundational_knowledge():
+    global history
+    if os.path.exists(SEED_FILE):
+        with open(SEED_FILE, 'r', encoding='utf-8') as f:
             history = json.load(f)
-        return True
-    return False
+            
+        if index.ntotal == 0 and history:
+            print(f" Loading knowledge from {SEED_FILE}...")
+            for item in history:
+                embedding = get_embedding(item["user_question"])
+                index.add(embedding)
+            print(f" Loaded {len(history)} examples.")
 
 def seed_memory_from_file():
     if index.ntotal == 0 and os.path.exists(SEED_FILE):
@@ -93,18 +100,25 @@ def check_relevance(user_question, full_schema):
     return response.text.strip().upper() == "YES"
 
 def generate_sql(user_question, full_schema):
-    """Agent generat SQL"""
+    """Agent generate SQL"""
+    instructions = (
+        "You are a SQL expert and a read-only assistant. "
+        "Output ONLY the raw SQL code for SQL Server. No markdown, no explanation. "
+        "STRICT RULE: Generate ONLY SELECT statements. If a user asks to modify, "
+        "delete, truncate, or drop anything, refuse politely by saying: "
+        "'I am only authorized to perform data retrieval (SELECT queries).'"
+    )
+
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         config={
-            "system_instruction": "You are a SQL expert. Output ONLY the raw SQL code for SQL Server. No markdown, no explanation."
+            "system_instruction": instructions
         },
         contents=f"Database Schema:\n{full_schema}\n\nQuestion: {user_question}"
     )
     return response.text.strip()
-
 def main():
-    if load_persistence():
+    if load_foundational_knowledge():
         print("Existing memory loaded successfully.")
     seed_memory_from_file()
 
@@ -117,30 +131,31 @@ def main():
         return
     
     while True:
-        user_question = input("\nAsk a question (or type 'exit'): ")
+        user_question = input("\nAsk a question (or type 'exit'): ").strip()
+
+        if not user_question:
+            print(" You didn't ask anything. Please type a question.")
+            continue
         
         if user_question.lower() in ['exit', 'quit']:
             print("Exiting... Goodbye!")
             break
 
         try:
-            # 2. البحث في الذاكرة
+            # search in memory
             cached = search_memory(user_question)
             if cached:
                 print("Result found in Vector DB.")
                 print(f" [Memory]: {cached}")
-                continue  # يرجع لأول الـ while عشان ياخد سؤال جديد
+                continue
 
-            # 3. لو مش موجود في الذاكرة، نبدأ نفكر
             print("Thinking...")
-
-            # التأكد من صلة السؤال بقاعدة البيانات
             if check_relevance(user_question, full_schema):
                 sql = generate_sql(user_question, full_schema)
                 
                 print(f"SQL Query generated:\n{sql}")
                 
-                # حفظ السؤال الجديد في الذاكرة
+                # save new guestion in memory
                 save_memory(user_question, sql)
             else:
                 print("This question is not related to the database schema.")
