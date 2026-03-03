@@ -88,7 +88,6 @@ class SQLAssistantEngine:
     def get_filtered_schema(self, active_tables):
         """بناء نص السكيما من القاموس المخزن في الذاكرة"""
         schema_text = ""
-        # التأكد من وجود القاموس
         if not hasattr(self, 'all_tables_dict') or not self.all_tables_dict:
             self.fetch_db_schema()
             
