@@ -10,5 +10,32 @@
     {
         "user_question": "Count all transactions",
         "sql": "SELECT COUNT(*) FROM FinanceTransaction;"
+    },
+    {
+        "user_question": "i need sum of amount",
+        "sql": "SELECT SUM(Amount) FROM FinanceTransaction"
+    },
+    {
+        "user_question": "delete top 5 amount",
+        "sql": "I am a read-only assistant and can only generate SELECT statements. I cannot perform DELETE operations."
+    },
+    {
+        "user_question": "please delete top transaction from table",
+        "sql": "I cannot fulfill this request. I am only allowed to generate SELECT statements."
+    },
+    {
+        "user_question": "i need max transactions last month",
+        "sql": "SELECT\n    COUNT(Id)\nFROM\n    FinanceTransaction\nWHERE\n    CreationTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()) - 1, 0)\n    AND CreationTime < DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)"
+    },
+    {
+        "user_question": "i need select all column in biller",
+        "sql": "SELECT * FROM biller",
+        "tables": [
+            "FinanceTransaction",
+            "Biller",
+            "BillerAggregator",
+            "BillerCategory",
+            "CustomerAccount"
+        ]
     }
-] 
+]

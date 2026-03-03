@@ -28,7 +28,7 @@ def search_memory(user_question):
     # علشان يكون في تطابق في المعني مش لازم يكون السؤال بالظبط 
     q_embedding = get_embedding(user_question)
     distances, indices = index.search(q_embedding, 1)
-    if distances[0][0] < 0.5:
+    if distances[0][0] < 0.7:
         matched_idx = indices[0][0]
         return history[matched_idx]["sql"]
     return None

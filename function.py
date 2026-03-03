@@ -2,6 +2,7 @@ import os, json, faiss, numpy as np
 from google import genai
 from sqlalchemy import create_engine, inspect
 from sentence_transformers import SentenceTransformer
+import pandas as pd 
 
 class SQLAssistantEngine:
     def __init__(self):
@@ -32,29 +33,36 @@ class SQLAssistantEngine:
                 return True
         return False
 
-    def search_memory(self, user_question):
+    def search_memory(self, user_question, current_active_tables):
         if self.index.ntotal == 0:
             return None
         
         q_embedding = self.get_embedding(user_question)
         distances, indices = self.index.search(q_embedding, 1)
         
-        if distances[0][0] < 0.7:
-            matched_idx = indices[0][0]
-            return self.history[matched_idx]["sql"]
-        return None
+        # إذا وجدنا سؤال مشابه (المسافة أقل من 0.7)
+        if distances[0][0] < 0.5:
+            matched_item = self.history[indices[0][0]]
+            saved_tables = matched_item.get("tables", [])
 
-    def save_memory(self, question, sql):
-        """حفظ سؤال جديد في الذاكرة والملفات"""
+            # الشرط الجديد: لازم كل الجداول اللي في الـ SQL المحفوظ تكون موجودة في الاختيار الحالي
+            if all(t in current_active_tables for t in saved_tables):
+                return matched_item["sql"]
+        
+        return None
+    def save_memory(self, question, sql, active_tables):
         embedding = self.get_embedding(question)
         self.index.add(embedding)
-        
-        self.history.append({"user_question": question, "sql": sql})
+        # 
+        # بنخزن السؤال والـ SQL وقائمة الجداول اللي استُخدمت
+        self.history.append({
+            "user_question": question, 
+            "sql": sql, 
+            "tables": active_tables 
+        })
         with open(self.SEED_FILE, 'w', encoding='utf-8') as f:
             json.dump(self.history, f, indent=4, ensure_ascii=False)
-            
         faiss.write_index(self.index, self.VECTOR_FILE)
-        print("   saved in memory   ")
 
     def fetch_db_schema(self):
         """سحب هيكل البيانات من SQL Server"""
@@ -67,6 +75,7 @@ class SQLAssistantEngine:
         conn_str = f"mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}"
         engine = create_engine(conn_str)
         inspector = inspect(engine)
+        self.all_tables_data = {}
         
         schema_text = ""
         for table_name in inspector.get_table_names():
@@ -74,29 +83,74 @@ class SQLAssistantEngine:
             columns = [col['name'] for col in inspector.get_columns(table_name)]
             schema_text += ", ".join(columns) + "\n"
         
-        self.full_schema = schema_text
+        return self.full_schema  
+
+    def get_filtered_schema(self, active_tables):
+        """بناء نص السكيما من القاموس المخزن في الذاكرة"""
+        schema_text = ""
+        # التأكد من وجود القاموس
+        if not hasattr(self, 'all_tables_dict') or not self.all_tables_dict:
+            self.fetch_db_schema()
+            
+        for table in active_tables:
+            if table in self.all_tables_dict:
+                cols = ", ".join(self.all_tables_dict[table])
+                schema_text += f"Table: {table}, Columns: [{cols}]\n"
         return schema_text
 
-    def check_relevance(self, user_question):
-        prompt = (
-            f"You are a gatekeeper for a database. Schema:\n{self.full_schema}\n"
-            f"User Question: {user_question}\n"
-            "Can this question be answered using the tables above? Answer ONLY 'YES' or 'NO'."
-        )
+    def check_relevance(self, user_question,active_tables):
+        current_schema = self.get_filtered_schema(active_tables)
+        allowed_list = ", ".join(active_tables)
+        prompt = f"""
+    You are a strict database gatekeeper.
+    
+    STRICT RULES:
+    1. You ONLY have access to these tables: [{allowed_list}]
+    2.Available Tables and Columns:
+        {current_schema}
+    
+    USER QUESTION: "{user_question}"
+    
+    TASK:
+    - Can this question be answered using ONLY the provided tables and columns?
+    - If the question needs a table NOT in the list above, answer NO.
+    - If the question is about weather, sports, or general chat, answer NO.
+    
+    ANSWER ONLY 'YES' OR 'NO'.
+    """
         response = self.client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
         return response.text.strip().upper() == "YES"
 
-    def generate_sql(self, user_question):
+    def generate_sql(self, user_question, active_tables):
+
+        current_schema = self.get_filtered_schema(active_tables)
         instructions = (
             "You are a SQL expert and a read-only assistant. "
             "Output ONLY the raw SQL code for SQL Server. No markdown, no explanation. "
             "STRICT RULE: Generate ONLY SELECT statements. If a user asks to modify, "
             "delete, truncate, or drop anything, refuse politely."
+            "DO NOT assume any other tables exist (like Product, Orders, etc). "
         )
 
         response = self.client.models.generate_content(
             model="gemini-2.5-flash",
             config={"system_instruction": instructions},
-            contents=f"Database Schema:\n{self.full_schema}\n\nQuestion: {user_question}"
-        )
+            contents=f"Database Schema:\n{current_schema}\n\nQuestion: {user_question}")
         return response.text.strip()
+    
+    def execute_query(self, sql):
+        try:
+            server = os.getenv("DB_SERVER")
+            database = os.getenv("DB_DATABASE")
+            username = os.getenv("DB_USERNAME")
+            password = os.getenv("DB_PASSWORD")
+            driver = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
+        
+            conn_str = f"mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}"
+            engine = create_engine(conn_str)
+        
+        # تنفيذ الاستعلام وتحويله لجدول بانداز
+            df = pd.read_sql(sql, engine)
+            return df
+        except Exception as e:
+            return f"Error executing SQL: {str(e)}"
