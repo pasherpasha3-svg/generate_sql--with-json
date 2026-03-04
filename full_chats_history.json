@@ -39,6 +39,14 @@
         {
             "role": "user",
             "content": "i need sum of amount"
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount"
+        },
+        {
+            "role": "assistant",
+            "content": "SELECT SUM(Amount) FROM FinanceTransaction"
         }
     ],
     "5911ab4b-bd15-4301-ae08-5c71a16d4647": [
@@ -88,5 +96,6 @@
             "role": "assistant",
             "content": "SELECT\n    COUNT(Id)\nFROM\n    FinanceTransaction\nWHERE\n    CreationTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()) - 1, 0)\n    AND CreationTime < DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)"
         }
-    ]
+    ],
+    "f1140e90-8a9b-42fc-a281-9f8bb6e43431": []
 }

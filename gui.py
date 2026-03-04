@@ -9,8 +9,50 @@ from function import SQLAssistantEngine
 HISTORY_FILE = "full_chats_history.json"
 MY_ACTIVE_TABLES = ["FinanceTransaction", "Biller","BillerAggregator","BillerCategory"] 
 
-st.set_page_config(page_title="AI SQL Assistant", page_icon="🤖", layout="wide")
-
+st.set_page_config(page_title="TabbieBot", page_icon="🤖", layout="wide")
+st.markdown("""
+    <style>
+    /* تنسيق حاوية اللوجو الرئيسية */
+    .logo-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #1E1E1E; /* لون خلفية غامق شيك */
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        border: 1px solid #333; /* خط خارجي خفيف */
+    }
+    
+    /* تنسيق أيقونة قدم القطة */
+    .logo-icon {
+        font-size: 32px;
+        margin-right: 10px;
+        animation: pawPulse 2s infinite; /* تأثير نبض خفيف */
+    }
+    
+    /* تنسيق النص Tabbie */
+    .logo-text {
+        font-family: 'Montserrat', sans-serif; /* خط مودرن */
+        font-weight: 700;
+        font-size: 26px;
+        color: #FFFFFF; /* أبيض ناصع */
+        margin: 0;
+    }
+    
+    /* تنسيق النص Bot */
+    .logo-highlight {
+        color: #00FFBB; /* لون "السيان" بيوحي بالتكنولوجيا والـ AI */
+    }
+    
+    /* حركة الـ Animation لقدم القطة */
+    @keyframes pawPulse {
+        0% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.8; }
+    }
+    </style>
+""", unsafe_allow_html=True)
 # --- وظائف الحفظ والتحميل ---
 def save_all_chats():
     data_to_save = {}
@@ -54,6 +96,14 @@ if "all_chats" not in st.session_state:
 
 # --- الـ Sidebar (يجب أن يكون خارج الـ if) ---
 with st.sidebar:
+    st.markdown("""
+        <div class="logo-container">
+            <span class="logo-icon">🐾</span>
+            <span class="logo-text">Tabbie<span class="logo-highlight">Bot</span></span>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.caption("Your Friendly AI SQL Companion")
     st.title("💬 Chats")
     if st.button("➕ New Chat", use_container_width=True):
         new_id = str(uuid.uuid4())
@@ -77,8 +127,59 @@ with st.sidebar:
     st.info(f"📍 Active Tables:\n{', '.join(MY_ACTIVE_TABLES)}")
 
 # --- واجهة المحادثة الرئيسية ---
-st.title("🤖 AI SQL Assistant")
-
+st.markdown("""
+    <div style="
+        background: rgba(0, 255, 187, 0.05);
+        padding: 20px 25px;
+        border-radius: 15px;
+        border: 1px solid rgba(0, 255, 187, 0.2);
+        margin-bottom: 25px;
+        display: inline-block;
+        width: 100%;
+    ">
+        <h1 style="
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-size: 38px;
+            font-weight: 850;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            line-height: 1.2;
+        ">
+            <span style="margin-right: 15px; filter: drop-shadow(0 0 5px rgba(0, 255, 187, 0.3));">🐾</span>
+            <span style="color: #2D3436;">Tabbie</span>
+            <span style="
+                background: linear-gradient(90deg, #00B894, #00CEC9);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-left: 5px;
+            ">Bot</span>
+        </h1>
+        <div style="
+            display: flex;
+            align-items: center;
+            margin-top: 8px;
+        ">
+            <div style="
+                width: 8px;
+                height: 8px;
+                background-color: #00B894;
+                border-radius: 50%;
+                margin-right: 10px;
+                box-shadow: 0 0 8px rgba(0, 184, 148, 0.5);
+            "></div>
+            <span style="
+                color: #636E72;
+                font-size: 14px;
+                font-weight: 600;
+                letter-spacing: 1.5px;
+                text-transform: uppercase;
+            ">Advanced SQL Intelligence</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+# التوضيح اللي تحت العنوان (Querying tables...)
+st.caption(f"🚀 Querying tables: {', '.join(MY_ACTIVE_TABLES)}")
 current_chat_messages = st.session_state.all_chats[st.session_state.current_chat_id]
 
 # عرض الرسائل
@@ -89,12 +190,12 @@ for message in current_chat_messages:
             st.dataframe(message["df"])
 
 # إدخال السؤال
-if user_query := st.chat_input("Ask about your data..."):
+if user_query := st.chat_input("Ask TabbieBot anything about your data..."):
     current_chat_messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.markdown(user_query)
 
-    with st.chat_message("assistant"):
+    with st.chat_message("🐾 TabbieBot"):
         # متغير لحمل النتيجة النهائية
         clean_sql = None
         cached_sql = None
@@ -103,10 +204,10 @@ if user_query := st.chat_input("Ask about your data..."):
             cached_sql = assistant.search_memory(user_query, MY_ACTIVE_TABLES)
 
         if cached_sql:
-            st.caption("✨ Answer retrieved from memory (Offline)")
+            st.caption("✨ Tabbie remembered this from before!")
             clean_sql = cached_sql.replace("```sql", "").replace("```", "").strip()
         else:
-            with st.spinner("AI Analyzing (Online)..."):
+            with st.spinner("Tabbie is thinking..."):
          
                 if assistant.check_relevance(user_query, MY_ACTIVE_TABLES):
                     response = assistant.generate_sql(user_query, MY_ACTIVE_TABLES)
