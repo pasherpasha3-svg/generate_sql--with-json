@@ -4,6 +4,8 @@ from sqlalchemy import create_engine, inspect
 from sentence_transformers import SentenceTransformer
 import pandas as pd 
 
+load_dotenv()
+
 class SQLAssistantEngine:
     def __init__(self):
         self.client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -56,10 +58,11 @@ class SQLAssistantEngine:
             matched_item = self.history[indices[0][0]]
             saved_tables = matched_item.get("tables", [])
 
-            # الشرط الجديد: لازم كل الجداول اللي في الـ SQL المحفوظ تكون موجودة في الاختيار الحالي
-            if all(t in current_active_tables for t in saved_tables):
+            if set(saved_tables).issubset(set(current_active_tables)) and len(saved_tables) > 0:
                 return matched_item["sql"]
-        
+        else:
+            return None
+    
         return None
     def save_memory(self, question, sql, active_tables):
         embedding = self.get_embedding(question)
