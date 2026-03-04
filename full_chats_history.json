@@ -1,0 +1,92 @@
+{
+    "95e8ecbf-7556-4bc2-980a-eecf8220640a": [
+        {
+            "role": "user",
+            "content": "i need sum amount "
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount "
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount\n\n"
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount\n\n"
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount\n\n"
+        },
+        {
+            "role": "user",
+            "content": "Count all transactions"
+        },
+        {
+            "role": "user",
+            "content": "Count all transactions\n\n"
+        },
+        {
+            "role": "assistant",
+            "content": "SELECT COUNT(*) FROM FinanceTransaction;"
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount"
+        },
+        {
+            "role": "user",
+            "content": "i need sum of amount"
+        }
+    ],
+    "5911ab4b-bd15-4301-ae08-5c71a16d4647": [
+        {
+            "role": "user",
+            "content": "i need sum of amount"
+        },
+        {
+            "role": "assistant",
+            "content": "SELECT SUM(Amount) FROM FinanceTransaction"
+        },
+        {
+            "role": "user",
+            "content": "Count all transactions\n\n"
+        },
+        {
+            "role": "assistant",
+            "content": "SELECT COUNT(*) FROM FinanceTransaction;"
+        },
+        {
+            "role": "user",
+            "content": "please delete top transaction from table"
+        },
+        {
+            "role": "assistant",
+            "content": "Query Error: Error executing SQL: (pyodbc.ProgrammingError) ('42000', \"[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near 'fulfill'. (102) (SQLExecDirectW); [42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near '.'. (102)\")\n[SQL: I cannot fulfill this request. I am only allowed to generate SELECT statements.]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+        },
+        {
+            "role": "user",
+            "content": "please delete top transaction from table"
+        },
+        {
+            "role": "assistant",
+            "content": "Query Error: Error executing SQL: (pyodbc.ProgrammingError) ('42000', \"[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near 'fulfill'. (102) (SQLExecDirectW); [42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near '.'. (102)\")\n[SQL: I cannot fulfill this request. I am only allowed to generate SELECT statements.]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+        }
+    ],
+    "f2152f3a-ae32-4773-a4ab-4a4eccd8d11d": [
+        {
+            "role": "user",
+            "content": "i need select all column in biller"
+        },
+        {
+            "role": "user",
+            "content": "i need max transactions last month"
+        },
+        {
+            "role": "assistant",
+            "content": "SELECT\n    COUNT(Id)\nFROM\n    FinanceTransaction\nWHERE\n    CreationTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()) - 1, 0)\n    AND CreationTime < DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)"
+        }
+    ]
+}

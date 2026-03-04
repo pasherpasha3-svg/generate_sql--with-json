@@ -15,6 +15,17 @@ class SQLAssistantEngine:
         self.SEED_FILE = "initial_question.json"
         self.full_schema = ""
 
+        server = os.getenv("DB_SERVER")
+        database = os.getenv("DB_DATABASE")
+        username = os.getenv("DB_USERNAME")
+        password = os.getenv("DB_PASSWORD")
+        driver = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
+        
+        self.conn_str = f"mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}"
+        self.engine = create_engine(self.conn_str)
+        self.all_tables_dict = {} 
+        self.fetch_db_schema()
+
     def get_embedding(self, text):
         embedding = self.embed_model.encode([text])
         return np.array(embedding).astype('float32').reshape(1, -1)
@@ -64,39 +75,35 @@ class SQLAssistantEngine:
             json.dump(self.history, f, indent=4, ensure_ascii=False)
         faiss.write_index(self.index, self.VECTOR_FILE)
 
-    def fetch_db_schema(self):
-        """سحب هيكل البيانات من SQL Server"""
-        server = os.getenv("DB_SERVER")
-        database = os.getenv("DB_DATABASE")
-        username = os.getenv("DB_USERNAME")
-        password = os.getenv("DB_PASSWORD")
-        driver = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
+    def fetch_db_schema(self):  
+
+        from sqlalchemy import inspect 
+        inspector = inspect(self.engine) 
         
-        conn_str = f"mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}"
-        engine = create_engine(conn_str)
-        inspector = inspect(engine)
-        self.all_tables_data = {}
-        
-        schema_text = ""
+        self.all_tables_dict = {}  
+        self.full_schema = ""
+
         for table_name in inspector.get_table_names():
-            schema_text += f"\nTable: {table_name}\nColumns: "
             columns = [col['name'] for col in inspector.get_columns(table_name)]
-            schema_text += ", ".join(columns) + "\n"
+
+            self.all_tables_dict[table_name] = columns
+            
+            self.full_schema += f"\nTable: {table_name}\nColumns: " + ", ".join(columns) + "\n"
         
-        return self.full_schema  
+        return self.full_schema
 
     def get_filtered_schema(self, active_tables):
-        """بناء نص السكيما من القاموس المخزن في الذاكرة"""
-        schema_text = ""
-        if not hasattr(self, 'all_tables_dict') or not self.all_tables_dict:
+        if not self.all_tables_dict: 
             self.fetch_db_schema()
             
+        schema_text = ""
         for table in active_tables:
-            if table in self.all_tables_dict:
-                cols = ", ".join(self.all_tables_dict[table])
-                schema_text += f"Table: {table}, Columns: [{cols}]\n"
+            columns_list = self.all_tables_dict.get(table, [])
+            if columns_list:
+                cols = ", ".join(columns_list)
+                schema_text += f"Table: {table}\nColumns: {cols}\n"
         return schema_text
-
+    
     def check_relevance(self, user_question,active_tables):
         current_schema = self.get_filtered_schema(active_tables)
         allowed_list = ", ".join(active_tables)
@@ -118,8 +125,9 @@ class SQLAssistantEngine:
     ANSWER ONLY 'YES' OR 'NO'.
     """
         response = self.client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-        return response.text.strip().upper() == "YES"
-
+        answer = response.text.strip().upper()
+        return "YES" in answer
+    
     def generate_sql(self, user_question, active_tables):
 
         current_schema = self.get_filtered_schema(active_tables)
@@ -139,17 +147,7 @@ class SQLAssistantEngine:
     
     def execute_query(self, sql):
         try:
-            server = os.getenv("DB_SERVER")
-            database = os.getenv("DB_DATABASE")
-            username = os.getenv("DB_USERNAME")
-            password = os.getenv("DB_PASSWORD")
-            driver = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
-        
-            conn_str = f"mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}"
-            engine = create_engine(conn_str)
-        
-        # تنفيذ الاستعلام وتحويله لجدول بانداز
-            df = pd.read_sql(sql, engine)
+            df = pd.read_sql(sql, self.engine)
             return df
         except Exception as e:
             return f"Error executing SQL: {str(e)}"
