@@ -3,9 +3,10 @@ from google import genai
 from sqlalchemy import create_engine, inspect
 from sentence_transformers import SentenceTransformer
 import pandas as pd 
+from dotenv import load_dotenv
+
 
 load_dotenv()
-
 class SQLAssistantEngine:
     def __init__(self):
         self.client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -56,13 +57,12 @@ class SQLAssistantEngine:
         # إذا وجدنا سؤال مشابه (المسافة أقل من 0.7)
         if distances[0][0] < 0.5:
             matched_item = self.history[indices[0][0]]
-            saved_tables = matched_item.get("tables", [])
+            saved_tables = set(matched_item.get("tables", []))
+            active_tables = set(current_active_tables)
 
-            if set(saved_tables).issubset(set(current_active_tables)) and len(saved_tables) > 0:
+            if saved_tables == active_tables:
                 return matched_item["sql"]
-        else:
-            return None
-    
+        
         return None
     def save_memory(self, question, sql, active_tables):
         embedding = self.get_embedding(question)
