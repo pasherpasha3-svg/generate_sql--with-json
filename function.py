@@ -116,6 +116,22 @@ class SQLAssistantEngine:
             json.dump(self.history, f, indent=4, ensure_ascii=False)
         faiss.write_index(self.index, self.VECTOR_FILE)
 
+    def fetch_db_schema(self):  
+
+        inspector = inspect(self.engine) 
+        
+        self.all_tables_dict = {}  
+        self.full_schema = ""
+
+        for table_name in inspector.get_table_names():
+            columns = [col['name'] for col in inspector.get_columns(table_name)]
+
+            self.all_tables_dict[table_name] = columns
+            
+            self.full_schema += f"\nTable: {table_name}\nColumns: " + ", ".join(columns) + "\n"
+        
+        return self.full_schema
+    
     def get_filtered_schema(self, active_tables):
         if not self.all_tables_dict: 
             self.fetch_db_schema()
