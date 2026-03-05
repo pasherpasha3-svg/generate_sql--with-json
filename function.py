@@ -73,6 +73,9 @@ class SQLAssistantEngine:
 
             # 3. فحص الكلمات المنطقية (Logic Keywords)
             logic_keywords = [
+                'last', 'next', 'previous', 'current', 'today', 'yesterday', 'tomorrow',
+                'day', 'week', 'month', 'year', 'quarter', 'hour', 'minute', 'second',
+                'daily', 'weekly', 'monthly', 'yearly', 'ago', 'since', 'until', 'between',
                 'greater', 'less', 'more', 'smaller', 'bigger', 'older', 'newer', 
                 'equal', 'above', 'below', 'under', 'between', 'max', 'min', 'top', 
                 'limit', 'order', 'sort', 'latest', 'earliest', 'highest', 'lowest', 
