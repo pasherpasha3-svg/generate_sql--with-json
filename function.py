@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, inspect
 from sentence_transformers import SentenceTransformer
 import pandas as pd 
 from dotenv import load_dotenv
+import re
 
 
 load_dotenv()
@@ -41,7 +42,7 @@ class SQLAssistantEngine:
             if self.history:
                 print(f" Loading knowledge from {self.SEED_FILE}...")
                 for item in self.history:
-                    embedding = self.get_embedding(item["user_question"])
+                    embedding = self.get_embedding(item["question"])
                     self.index.add(embedding)
                 print(f" Loaded {len(self.history)} examples.")
                 return True
@@ -50,50 +51,70 @@ class SQLAssistantEngine:
     def search_memory(self, user_question, current_active_tables):
         if self.index.ntotal == 0:
             return None
-        
+
         q_embedding = self.get_embedding(user_question)
         distances, indices = self.index.search(q_embedding, 1)
         
-        # إذا وجدنا سؤال مشابه (المسافة أقل من 0.7)
+        # 0.5 threshold مناسب جداً
         if distances[0][0] < 0.5:
             matched_item = self.history[indices[0][0]]
-            saved_tables = set(matched_item.get("tables", []))
-            active_tables = set(current_active_tables)
+            saved_question = matched_item.get("question", "").lower()
+            current_question = user_question.lower()
+            saved_sql = matched_item.get("sql", "")
+            saved_tables = matched_item.get("tables", [])
 
-            if saved_tables == active_tables:
-                return matched_item["sql"]
-        
+            # 1. التأكد من الجداول أولاً (لو الجداول مختلفة ارفض الذاكرة)
+            if set(saved_tables) != set(current_active_tables):
+                return None
+
+            # 2. لو السؤال متطابق حرفياً، رجعه فوراً
+            if saved_question == current_question:
+                return saved_sql
+
+            # 3. فحص الكلمات المنطقية (Logic Keywords)
+            logic_keywords = [
+                'greater', 'less', 'more', 'smaller', 'bigger', 'older', 'newer', 
+                'equal', 'above', 'below', 'under', 'between', 'max', 'min', 'top', 
+                'limit', 'order', 'sort', 'latest', 'earliest', 'highest', 'lowest', 
+                'asc', 'desc', 'group', 'by', 'having', 'most', 'least'
+            ]
+            for word in logic_keywords:
+                if (word in saved_question and word not in current_question) or \
+                   (word in current_question and word not in saved_question):
+                    return None 
+
+            # 4. محاولة تبديل القيم (لو وجدت)
+            saved_values = re.findall(r"'(.*?)'|(\d+)", saved_question)
+            current_values = re.findall(r"'(.*?)'|(\d+)", current_question)
+
+            if len(saved_values) == len(current_values) and len(saved_values) > 0:
+                new_sql = saved_sql
+                for old_v_tuple, new_v_tuple in zip(saved_values, current_values):
+                    old_v = old_v_tuple[0] if old_v_tuple[0] else old_v_tuple[1]
+                    new_v = new_v_tuple[0] if new_v_tuple[0] else new_v_tuple[1]
+                    new_sql = new_sql.replace(old_v, new_v)
+                return new_sql
+
         return None
+
     def save_memory(self, question, sql, active_tables):
+        # منع التكرار: لا تحفظ إذا كان السؤال بنفس الجداول موجوداً بالفعل
+        for item in self.history:
+            if item["question"].lower() == question.lower() and set(item["tables"]) == set(active_tables):
+                return 
+
         embedding = self.get_embedding(question)
         self.index.add(embedding)
-        # 
-        # بنخزن السؤال والـ SQL وقائمة الجداول اللي استُخدمت
+        
         self.history.append({
-            "user_question": question, 
+            "question": question, 
             "sql": sql, 
             "tables": active_tables 
         })
+        
         with open(self.SEED_FILE, 'w', encoding='utf-8') as f:
             json.dump(self.history, f, indent=4, ensure_ascii=False)
         faiss.write_index(self.index, self.VECTOR_FILE)
-
-    def fetch_db_schema(self):  
-
-        from sqlalchemy import inspect 
-        inspector = inspect(self.engine) 
-        
-        self.all_tables_dict = {}  
-        self.full_schema = ""
-
-        for table_name in inspector.get_table_names():
-            columns = [col['name'] for col in inspector.get_columns(table_name)]
-
-            self.all_tables_dict[table_name] = columns
-            
-            self.full_schema += f"\nTable: {table_name}\nColumns: " + ", ".join(columns) + "\n"
-        
-        return self.full_schema
 
     def get_filtered_schema(self, active_tables):
         if not self.all_tables_dict: 

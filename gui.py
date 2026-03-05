@@ -12,40 +12,36 @@ MY_ACTIVE_TABLES = ["FinanceTransaction", "Biller","BillerAggregator","BillerCat
 st.set_page_config(page_title="TabbieBot", page_icon="🤖", layout="wide")
 st.markdown("""
     <style>
-    /* تنسيق حاوية اللوجو الرئيسية */
+    /* */
     .logo-container {
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #1E1E1E; /* لون خلفية غامق شيك */
+        background-color: #1E1E1E; 
         padding: 15px;
         border-radius: 12px;
         margin-bottom: 25px;
-        border: 1px solid #333; /* خط خارجي خفيف */
+        border: 1px solid #333; 
     }
     
-    /* تنسيق أيقونة قدم القطة */
     .logo-icon {
         font-size: 32px;
         margin-right: 10px;
-        animation: pawPulse 2s infinite; /* تأثير نبض خفيف */
-    }
+        animation: pawPulse 2s infinite; 
+        }
     
-    /* تنسيق النص Tabbie */
     .logo-text {
-        font-family: 'Montserrat', sans-serif; /* خط مودرن */
+        font-family: 'Montserrat', sans-serif; 
         font-weight: 700;
         font-size: 26px;
-        color: #FFFFFF; /* أبيض ناصع */
+        color: #FFFFFF; 
         margin: 0;
     }
     
-    /* تنسيق النص Bot */
     .logo-highlight {
-        color: #00FFBB; /* لون "السيان" بيوحي بالتكنولوجيا والـ AI */
+        color: #00FFBB; 
     }
     
-    /* حركة الـ Animation لقدم القطة */
     @keyframes pawPulse {
         0% { transform: scale(1); opacity: 0.8; }
         50% { transform: scale(1.1); opacity: 1; }
@@ -60,7 +56,7 @@ def save_all_chats():
         clean_messages = []
         for msg in messages:
             m = msg.copy()
-            if "df" in m: del m["df"]  # لا نحفظ الجداول لتقليل الحجم
+            if "df" in m: del m["df"] 
             clean_messages.append(m)
         data_to_save[chat_id] = clean_messages
         
@@ -94,11 +90,10 @@ if "all_chats" not in st.session_state:
         st.session_state.all_chats = {new_id: []}
         st.session_state.current_chat_id = new_id
 
-# --- الـ Sidebar (يجب أن يكون خارج الـ if) ---
 with st.sidebar:
     st.markdown("""
         <div class="logo-container">
-            <span class="logo-icon">🐾</span>
+            <span class="logo-icon">👁️‍🗨️</span>
             <span class="logo-text">Tabbie<span class="logo-highlight">Bot</span></span>
         </div>
     """, unsafe_allow_html=True)
@@ -178,7 +173,6 @@ st.markdown("""
         </div>
     </div>
 """, unsafe_allow_html=True)
-# التوضيح اللي تحت العنوان (Querying tables...)
 st.caption(f"🚀 Querying tables: {', '.join(MY_ACTIVE_TABLES)}")
 current_chat_messages = st.session_state.all_chats[st.session_state.current_chat_id]
 
@@ -195,8 +189,7 @@ if user_query := st.chat_input("Ask TabbieBot anything about your data..."):
     with st.chat_message("user"):
         st.markdown(user_query)
 
-    with st.chat_message("🐾 TabbieBot"):
-        # متغير لحمل النتيجة النهائية
+    with st.chat_message("👁️‍🗨️ TabbieBot"):
         clean_sql = None
         cached_sql = None
 
