@@ -106,6 +106,8 @@ class SQLAssistantEngine:
         return None
 
     def save_memory(self, question, sql, active_tables):
+        if not self.use_memory:
+            return 
         # منع التكرار: لا تحفظ إذا كان السؤال بنفس الجداول موجوداً بالفعل
         for item in self.history:
             if item["question"].lower() == question.lower() and set(item["tables"]) == set(active_tables):
