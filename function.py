@@ -29,6 +29,8 @@ class SQLAssistantEngine:
         self.engine = create_engine(self.conn_str)
         self.all_tables_dict = {} 
         self.fetch_db_schema()
+        self.use_memory = False
+
 
     def get_embedding(self, text):
         embedding = self.embed_model.encode([text])
@@ -49,6 +51,9 @@ class SQLAssistantEngine:
         return False
 
     def search_memory(self, user_question, current_active_tables):
+        if not self.use_memory:
+            return None
+        
         if self.index.ntotal == 0:
             return None
 
