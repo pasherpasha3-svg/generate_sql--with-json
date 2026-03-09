@@ -9,7 +9,7 @@ from function import SQLAssistantEngine
 HISTORY_FILE = "full_chats_history.json"
 MY_ACTIVE_TABLES = ["FinanceTransaction", "Biller","BillerAggregator","BillerCategory"] 
 
-st.set_page_config(page_title="TabbieBot", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Tabbie Ai", page_icon="🤖", layout="wide")
 st.markdown("""
     <style>
     /* */
@@ -98,7 +98,7 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
     
-    st.caption("Your Friendly AI SQL Companion")
+    st.caption("chat with your data")
     st.title("💬 Chats")
     if st.button("➕ New Chat", use_container_width=True):
         new_id = str(uuid.uuid4())
@@ -184,12 +184,12 @@ for message in current_chat_messages:
             st.dataframe(message["df"])
 
 # إدخال السؤال
-if user_query := st.chat_input("Ask TabbieBot anything about your data..."):
+if user_query := st.chat_input("Ask Tabbie anything about your data..."):
     current_chat_messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.markdown(user_query)
 
-    with st.chat_message("👁️‍🗨️ TabbieBot"):
+    with st.chat_message("👁️‍🗨️ TabbieAi"):
         clean_sql = None
         cached_sql = None
 
