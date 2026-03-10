@@ -94,7 +94,7 @@ with st.sidebar:
     st.markdown("""
         <div class="logo-container">
             <span class="logo-icon">👁️‍🗨️</span>
-            <span class="logo-text">Tabbie<span class="logo-highlight">Bot</span></span>
+            <span class="logo-text">Tabbie<span class="logo-highlight">AI</span></span>
         </div>
     """, unsafe_allow_html=True)
     
@@ -148,7 +148,7 @@ st.markdown("""
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 margin-left: 5px;
-            ">Bot</span>
+            ">AI</span>
         </h1>
         <div style="
             display: flex;
