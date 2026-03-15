@@ -159,6 +159,14 @@
         {
             "role": "assistant",
             "content": "SELECT SUM(Amount) FROM FinanceTransaction;"
+        },
+        {
+            "role": "user",
+            "content": "i need sum amount\n\n"
+        },
+        {
+            "role": "assistant",
+            "content": "SELECT SUM(Amount) FROM FinanceTransaction"
         }
     ],
     "5911ab4b-bd15-4301-ae08-5c71a16d4647": [
